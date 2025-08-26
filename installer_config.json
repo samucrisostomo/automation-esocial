@@ -1,0 +1,96 @@
+{
+  "installer": {
+    "name": "PartnerShip Automation",
+    "version": "2.0",
+    "description": "Sistema automatizado para extração de dados do eSocial",
+    "company": "PartnerShip Engenharia",
+    "website": "https://partnership.com.br",
+    "support_email": "suporte@partnership.com.br"
+  },
+  "requirements": {
+    "python": {
+      "min_version": "3.8",
+      "recommended_version": "3.11"
+    },
+    "system": {
+      "os": ["Windows 10", "Windows 11"],
+      "architecture": ["x64"],
+      "ram": "4GB",
+      "disk_space": "500MB"
+    },
+    "browsers": {
+      "chrome": {
+        "min_version": "100.0",
+        "required": true
+      }
+    }
+  },
+  "packages": {
+    "core": [
+      "numpy>=1.21.0",
+      "pandas>=1.5.0",
+      "pyautogui>=0.9.54",
+      "pygetwindow>=0.0.9",
+      "selenium>=4.10.0",
+      "openpyxl>=3.1.0",
+      "xlrd>=2.0.1",
+      "requests>=2.25.0"
+    ],
+    "optional": ["pillow>=8.0.0", "matplotlib>=3.3.0"]
+  },
+  "installation": {
+    "default_dir": "%USERPROFILE%\\PartnerShip-Automation",
+    "folders": ["logs", "chromedriver", "temp", "backups", "config"],
+    "desktop_shortcut": true,
+    "start_menu_shortcut": true,
+    "uninstaller": true
+  },
+  "features": {
+    "auto_chromedriver": true,
+    "logging": true,
+    "error_handling": true,
+    "auto_updates": false,
+    "telemetry": false
+  },
+  "ui": {
+    "theme": "modern",
+    "language": "pt-BR",
+    "window_size": "400x450",
+    "colors": {
+      "primary": "#2E86AB",
+      "secondary": "#666666",
+      "success": "#4CAF50",
+      "warning": "#FF9800",
+      "error": "#F44336"
+    }
+  },
+  "chrome": {
+    "debug_port": 9222,
+    "user_data_dir": "%USERPROFILE%\\AppData\\Local\\ChromeDebug",
+    "chromedriver_dir": "%USERPROFILE%\\chromedriver",
+    "auto_download": true,
+    "version_check": true
+  },
+  "esocial": {
+    "login_url": "https://login.esocial.gov.br/login.aspx",
+    "timeout": 30,
+    "retry_attempts": 3
+  },
+  "logging": {
+    "level": "INFO",
+    "file_rotation": true,
+    "max_size": "10MB",
+    "backup_count": 5,
+    "cleanup_days": 30
+  },
+  "security": {
+    "encrypt_logs": false,
+    "secure_connections": true,
+    "data_retention": 90
+  },
+  "troubleshooting": {
+    "auto_diagnosis": true,
+    "error_reports": false,
+    "debug_mode": false
+  }
+}

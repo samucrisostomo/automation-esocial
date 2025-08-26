@@ -1,0 +1,15 @@
+# Dependências principais para todos os projetos
+numpy>=1.21.0
+pandas>=1.5.0
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+selenium>=4.10.0
+openpyxl>=3.1.0
+xlrd>=2.0.1
+requests>=2.25.0
+
+# Dependências adicionais para desenvolvimento
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0

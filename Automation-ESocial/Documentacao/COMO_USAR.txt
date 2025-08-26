@@ -1,0 +1,46 @@
+🚀 PARTNERSHIP AUTOMATION - GUIA RÁPIDO DE USO
+================================================
+
+📋 PRÉ-REQUISITOS:
+- Python 3.8 ou superior instalado
+- Google Chrome instalado
+- Conexão com a internet (para download automático do ChromeDriver)
+
+🔄 PRIMEIRA EXECUÇÃO:
+1. Execute: python partnership.py
+2. O sistema detectará automaticamente sua versão do Chrome
+3. Baixará e instalará o ChromeDriver compatível
+4. Abrirá o Chrome em modo debug
+5. Aguarde a conexão ser estabelecida
+
+🎯 COMO USAR:
+1. Clique em "Iniciar Chrome Debug" para abrir o Chrome
+2. Faça login no eSocial no Chrome aberto
+3. Clique em "Executar Automação" para iniciar o processo
+4. O sistema processará automaticamente a planilha PartnerShip.xlsx
+5. Acompanhe o progresso na interface
+
+📁 ARQUIVOS IMPORTANTES:
+- partnership.py - Programa principal
+- config.py - Configurações do sistema
+- requirements.txt - Dependências Python
+- PartnerShip_Exemplo.xlsx - Planilha de exemplo
+
+⚙️ CONFIGURAÇÕES:
+- Edite config.py para personalizar:
+  * Timeouts
+  * Cores da interface
+  * Caminhos das pastas
+  * Configurações do Chrome
+
+🔧 TROUBLESHOOTING:
+- Se houver erro de ChromeDriver: Execute VERIFICAR_INSTALACAO.bat
+- Se houver erro de dependências: Execute pip install -r requirements.txt
+- Para reinstalar: Execute DESINSTALAR_RAPIDO.bat e depois o instalador
+
+📞 SUPORTE:
+- Verifique os logs em: %USERPROFILE%\logs\
+- Execute VERIFICAR_INSTALACAO.bat para diagnóstico
+- Consulte a documentação completa na pasta Documentacao\
+
+🎉 BOA AUTOMAÇÃO!
