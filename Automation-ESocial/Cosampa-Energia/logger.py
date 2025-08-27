@@ -1,28 +1,23 @@
 """
-Sistema de logging para o Cosampa Energia Automation
-Otimizado para execução sem privilégios de administrador
+Sistema de logging para o PartnerShip Automation
 """
 
 import logging
 import os
 from datetime import datetime
-import config
 
 
-def configurar_logger(nome_arquivo=None):
+def configurar_logger(nome_arquivo="partnership_automation.log"):
     """Configura e retorna um logger configurado"""
-    
-    if nome_arquivo is None:
-        nome_arquivo = config.LOG_FILE
 
-    # Usa pasta de logs configurada no config.py
-    log_dir = config.LOG_DIR
+    # Cria diretório de logs se não existir
+    log_dir = os.path.join(os.path.expanduser("~"), "logs")
     os.makedirs(log_dir, exist_ok=True)
 
     log_path = os.path.join(log_dir, nome_arquivo)
 
     # Configura o logger
-    logger = logging.getLogger('CosampaEnergiaAutomation')
+    logger = logging.getLogger('PartnerShipAutomation')
     logger.setLevel(logging.DEBUG)
 
     # Evita duplicação de handlers
@@ -80,7 +75,7 @@ def log_debug(mensagem):
 def limpar_logs_antigos(dias=30):
     """Remove logs mais antigos que o número de dias especificado"""
     try:
-        log_dir = config.LOG_DIR
+        log_dir = os.path.join(os.path.expanduser("~"), "logs")
         if not os.path.exists(log_dir):
             return
 
