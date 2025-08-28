@@ -6,24 +6,32 @@ import pyautogui
 import pygetwindow as gw
 import os
 import time
-import config
-import logger
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# Importa configurações do arquivo config.py
-PASTA_DESTINO = config.PASTA_DESTINO_COSAMPA
-PLANILHA = config.PLANILHA_PADRAO_COSAMPA
-executando = False
+# === CONFIGURAÇÕES GERAIS ===
+PASTA_DESTINO = fr"C:\Users\{os.getlogin()}\Desktop\Automate-Esocial\Cosampa-Energia"
+# Caminho absoluto para a planilha local
+PLANILHA = os.path.join(
+    os.path.expanduser("~"),
+    "Desktop",
+    "Automate-Esocial",
+    "CosampaEnergia.xlsx"
+)
+executando = False  # Flag de controle para saber se a automação está rodando
 
-# Configurações do PyAutoGUI para maior confiabilidade
-pyautogui.FAILSAFE = config.PYAUTOGUI_FAILSAFE
-pyautogui.PAUSE = config.PYAUTOGUI_PAUSE
+# === FUNÇÃO PARA ATUALIZAR O STATUS NA INTERFACE ===
 
 
 def atualizar_status(msg):
-    status_var.set(msg)
-    janela.update_idletasks()
+    status_var.set(msg)  # Atualiza a variável de texto do Label
+    janela.update_idletasks()  # Garante que a interface seja atualizada em tempo real
 
 
+# === FUNÇÃO PARA SELECIONAR PLANILHA ===
 def selecionar_planilha():
     global PLANILHA
     arquivo = filedialog.askopenfilename(
@@ -32,23 +40,31 @@ def selecionar_planilha():
     )
     if arquivo:
         PLANILHA = arquivo
-        atualizar_status(f"Planilha seleionada: {os.path.basename(PLANILHA)}")
+        atualizar_status(f"Planilha selecionada: {os.path.basename(PLANILHA)}")
+        # Atualiza também a informação da planilha na interface
+        info_var.set(f"Planilha: {os.path.basename(PLANILHA)}")
     else:
         atualizar_status("Nenhuma planilha selecionada")
+
+# === FUNÇÃO PARA ATIVAR A JANELA DO ESOCIAL ===
 
 
 def ativar_janela_esocial():
     try:
+        # Busca janelas com "eSocial" no título (case-insensitive)
         janelas = [j for j in gw.getAllWindows(
         ) if "esocial" in j.title.lower()]
         if not janelas:
             atualizar_status("⚠️ Janela do eSocial não encontrada.")
             return False
+
+        # Tenta ativar a primeira janela correspondente
         janela = janelas[0]
         if not janela.isActive:
             janela.activate()
-            time.sleep(0.5)
-            for _ in range(3):
+            time.sleep(0.5)  # Reduz o tempo de espera inicial
+            # Verifica se a janela foi realmente ativada
+            for _ in range(3):  # Tenta até 3 vezes
                 if janela.isActive:
                     atualizar_status("Janela do eSocial ativada com sucesso.")
                     return True
@@ -64,13 +80,16 @@ def ativar_janela_esocial():
         return False
 
 
+# === FUNÇÃO PARA INICIAR O CHROME EM MODO DEBUG ===
 def iniciar_chrome_debug():
     try:
         atualizar_status("Iniciando Chrome em modo debug...")
         pyautogui.hotkey('win', 'r')
         time.sleep(1)
-        user_data_dir = config.CHROME_USER_DATA_DIR
-        comando = f'chrome.exe --remote-debugging-port={config.CHROME_DEBUG_PORT} --user-data-dir="{user_data_dir}" --no-first-run --no-default-browser-check'
+        # Usar pasta do usuário em vez de C:\selenium (que precisa de admin)
+        user_data_dir = os.path.join(
+            os.path.expanduser("~"), "AppData", "Local", "ChromeDebug")
+        comando = f'chrome.exe --remote-debugging-port=9222 --user-data-dir="{user_data_dir}" --no-first-run --no-default-browser-check'
         pyautogui.write(comando, interval=0.05)
         pyautogui.press('enter')
         time.sleep(5)
@@ -81,22 +100,22 @@ def iniciar_chrome_debug():
     except Exception as e:
         atualizar_status(f"Erro ao iniciar Chrome: {str(e)}")
 
+# === FUNÇÃO PRINCIPAL DE AUTOMAÇÃO ===
+
 
 def automacao():
     global executando
-    executando = True
+    executando = True  # Inicia a execução
 
+    # Verifica se o arquivo da planilha existe
     if not os.path.exists(PLANILHA):
         messagebox.showerror("Erro", f"Planilha não encontrada em: {PLANILHA}")
         executando = False
         return
 
+    # Lê a planilha Excel e cria pasta de destino se necessário
     try:
         df = pd.read_excel(PLANILHA)
-        if df.empty:
-            messagebox.showerror("Erro", "A planilha está vazia")
-            executando = False
-            return
     except Exception as e:
         messagebox.showerror("Erro", f"Erro ao ler a planilha: {str(e)}")
         executando = False
@@ -104,48 +123,97 @@ def automacao():
 
     os.makedirs(PASTA_DESTINO, exist_ok=True)
 
-    atualizar_status("Iniciando automação com PyAutoGUI...")
+    # Conecta ao navegador Chrome já aberto com modo de depuração
+    chrome_options = Options()
+    chrome_options.debugger_address = "localhost:9222"
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.implicitly_wait(10)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao conectar ao Chrome: {str(e)}")
+        executando = False
+        return
 
-    # Aguarda um tempo para o usuário posicionar o mouse e preparar a tela
-    atualizar_status(
-        "Posicione o mouse na tela do eSocial e aguarde 5 segundos...")
-    time.sleep(5)
+    # Verifica se a aba atual é o eSocial
+    if "eSocial" not in driver.title:
+        messagebox.showerror("Erro", "A aba aberta não é o eSocial.")
+        driver.quit()
+        return
 
+    # Navega para o menu "Gestão de Empregado"
+    wait = WebDriverWait(driver, 15)
+    driver.execute_script("arguments[0].click();", wait.until(
+        EC.element_to_be_clickable((By.ID, "menuEmpregado"))))
+    time.sleep(2)
+    wait.until(EC.element_to_be_clickable(
+        (By.XPATH, "//*[contains(text(), 'Gestão de Empregado')]"))).click()
+    time.sleep(3)
+
+    # === LOOP PARA CADA COLABORADOR NA PLANILHA ===
     for i in range(len(df)):
         if not executando:
-            break
-        cpf = str(df.iloc[i, 0])
+            break  # Se clicar em "Parar", encerra loop imediatamente
+
+        cpf = str(df.iloc[i, 0])  # Coluna de CPF
         if pd.isna(cpf) or cpf.strip() == "":
             atualizar_status("Linha vazia encontrada. Finalizando...")
             break
-        nome_colaborador = str(df.iloc[i, 1])
+
+        nome_colaborador = str(df.iloc[i, 1])  # Coluna de Nome
         atualizar_status(f"Processando: {nome_colaborador}")
 
-        # Aqui você pode adicionar os comandos PyAutoGUI específicos para navegar no eSocial
-        # Por exemplo, clicar em campos, preencher formulários, etc.
+        # Preenche o campo de filtro com o CPF
+        filtro_input = wait.until(
+            EC.presence_of_element_located((By.ID, "filtro")))
+        filtro_input.clear()
+        filtro_input.send_keys(cpf)
 
+        # Clica na sugestão do CPF
+        try:
+            wait.until(EC.element_to_be_clickable((By.ID, "ui-id-3"))).click()
+        except:
+            continue  # Se não encontrar sugestão, passa para o próximo
+
+        # Clica em "Dados Cadastrais"
+        try:
+            btn = wait.until(EC.element_to_be_clickable(
+                (By.XPATH, "//a[contains(@class, 'dados-cadastrais') and contains(text(), 'Dados Cadastrais')]")))
+            driver.execute_script("arguments[0].click();", btn)
+            time.sleep(4)
+        except:
+            continue  # Se não encontrar botão, passa para o próximo
+
+        # Ativa a janela do eSocial
         if not ativar_janela_esocial():
             atualizar_status("Prosseguindo sem ativação da janela...")
-            continue
+            continue  # Pula para o próximo se não conseguir ativar
 
-        # Exemplo de comandos PyAutoGUI (ajuste conforme necessário)
+        # Inicia a tela de impressão
         pyautogui.hotkey('ctrl', 'p')
         time.sleep(5)
         nome_pdf = f"{nome_colaborador}.pdf"
 
+        # === PRIMEIRA VEZ: configurações iniciais ===
         if i == 0:
+            # Altera o destino para "Salvar como PDF"
             pyautogui.press('tab', presses=5, interval=0.4)
             pyautogui.press('down')
             time.sleep(0.5)
             pyautogui.press('enter')
+
+            # Altera layout para paisagem
             pyautogui.press('tab', presses=3, interval=0.4)
             pyautogui.press('down')
             time.sleep(0.5)
             pyautogui.press('enter')
+
+            # Clica em "Imprimir"
             pyautogui.press('tab', presses=3, interval=0.4)
             time.sleep(1)
             pyautogui.press('enter')
             time.sleep(3)
+
+            # Nomeia o arquivo PDF
             pyautogui.write(nome_pdf, interval=0.1)
             pyautogui.press('tab', presses=6, interval=0.4)
             pyautogui.press('enter')
@@ -154,26 +222,32 @@ def automacao():
             time.sleep(1)
             pyautogui.press('enter')
             time.sleep(1)
-            pyautogui.press('enter')
-            pyautogui.press('enter')
-            pyautogui.press('enter')
-            pyautogui.press('enter')
+            pyautogui.press('enter')  # Confirmar salvar
+            pyautogui.press('enter')  # Substituir, se necessário
+            pyautogui.press('enter')  # Substituir, se necessário
+            pyautogui.press('enter')  # Substituir, se necessário
+
+        # === DEMAIS ITERAÇÕES ===
         else:
-            pyautogui.press('enter')
+            pyautogui.press('enter')  # Imprimir direto
             time.sleep(3)
             pyautogui.write(nome_pdf, interval=0.1)
             time.sleep(1)
-            pyautogui.press('enter')
-            pyautogui.press('enter')
+            pyautogui.press('enter')  # Confirmar salvar
+            pyautogui.press('enter')  # Substituir
             pyautogui.press('enter')
             pyautogui.press('enter')
 
         atualizar_status(f"PDF salvo: {nome_pdf}")
         time.sleep(2)
 
+    # Finaliza automação
+    driver.quit()
     executando = False
     atualizar_status("✅ Automação concluída.")
     messagebox.showinfo("Finalizado", "Automação finalizada com sucesso.")
+
+# === FUNÇÃO PARA INICIAR A AUTOMAÇÃO (em nova thread) ===
 
 
 def iniciar():
@@ -186,9 +260,12 @@ def iniciar():
             "Executando", "A automação já está em execução.")
 
 
+# === FUNÇÃO PARA INICIAR O CHROME ===
 def iniciar_chrome():
     thread = threading.Thread(target=iniciar_chrome_debug)
     thread.start()
+
+# === FUNÇÃO PARA PARAR A AUTOMAÇÃO ===
 
 
 def parar():
@@ -201,58 +278,40 @@ def parar():
         messagebox.showinfo("Status", "Nenhuma automação está rodando.")
 
 
+# === INTERFACE GRÁFICA COM TKINTER ===
 janela = tk.Tk()
-janela.title("Cosampa Energia Automation - eSocial")
-janela.geometry(f"{config.JANELA_LARGURA}x{config.JANELA_ALTURA}")
+janela.title("Automação eSocial - Cosampa Energia")
+janela.geometry("380x350")
 janela.resizable(False, False)
 
-# Configurar ícone da janela (se disponível)
-try:
-    janela.iconbitmap("icon.ico")
-except:
-    pass
+# Título
+tk.Label(janela, text="Esocial - Cosampa Energia",
+         font=("Arial", 12, "bold")).pack(pady=10)
 
-# Título principal
-titulo_frame = tk.Frame(janela)
-titulo_frame.pack(pady=10)
-tk.Label(titulo_frame, text="Cosampa Energia Automation - eSocial",
-         font=("Arial", 14, "bold"), fg=config.COR_TITULO).pack()
-tk.Label(titulo_frame, text="Automação eSocial",
-         font=("Arial", 10), fg=config.COR_SUBTITULO).pack()
+# Botões
+tk.Button(janela, text="📁 Selecionar Planilha", width=25, command=selecionar_planilha,
+          bg="green", fg="white").pack(pady=5)
 
-# Frame para botões principais
-botoes_frame = tk.Frame(janela)
-botoes_frame.pack(pady=10)
+tk.Button(janela, text="🌐 Abrir Chrome eSocial", width=25, command=iniciar_chrome,
+          bg="blue", fg="white").pack(pady=5)
 
-tk.Button(botoes_frame, text="📁 Selecionar Planilha", width=25,
-          command=selecionar_planilha, bg=config.COR_VERDE, fg="white",
-          font=("Arial", 10, "bold")).pack(pady=3)
+tk.Button(janela, text="▶️ Iniciar Automação", width=25, command=iniciar,
+          bg="green", fg="white").pack(pady=5)
 
-tk.Button(botoes_frame, text="🌐 Abrir Chrome eSocial", width=25,
-          command=iniciar_chrome, bg=config.COR_AZUL, fg="white",
-          font=("Arial", 10, "bold")).pack(pady=3)
+tk.Button(janela, text="⛔ Encerrar Automação", width=25, command=parar,
+          bg="red", fg="white").pack(pady=5)
 
-tk.Button(botoes_frame, text="▶️ Iniciar Automação", width=25,
-          command=iniciar, bg=config.COR_VERDE, fg="white",
-          font=("Arial", 10, "bold")).pack(pady=3)
-
-tk.Button(botoes_frame, text="⛔ Encerrar Automação", width=25,
-          command=parar, bg=config.COR_VERMELHO, fg="white",
-          font=("Arial", 10, "bold")).pack(pady=3)
-
-# Status
-status_frame = tk.Frame(janela)
-status_frame.pack(pady=10, fill="x", padx=20)
-
+# Label dinâmico de status
 status_var = tk.StringVar()
 status_var.set("Aguardando início...")
-tk.Label(status_frame, textvariable=status_var, fg=config.COR_TITULO,
-         wraplength=350, font=("Arial", 10), justify="center").pack()
+tk.Label(janela, textvariable=status_var, fg="blue", wraplength=320,
+         font=("Arial", 10)).pack(pady=10)
 
 # Informações da planilha
 info_var = tk.StringVar()
 info_var.set(f"Planilha: {os.path.basename(PLANILHA)}")
-tk.Label(status_frame, textvariable=info_var, fg=config.COR_SUBTITULO,
+tk.Label(janela, textvariable=info_var, fg="gray",
          font=("Arial", 9)).pack(pady=5)
 
+# Inicia o loop da interface
 janela.mainloop()
